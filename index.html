@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Ada pesan untukmu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,wght@0,500;0,700;1,500;1,700&display=swap"
+        rel="stylesheet">
+
+    <!-- =====================================================================
+         DAFTAR ISI FILE INI
+         ---------------------------------------------------------------------
+         CSS    : 0 Dasar  | 1 Amplop | 2 Surat | 3 Kartu klik | 4 Bubble wrap | 5 Penutup
+                  6 Tombol musik | 7 Efek melayang | 8 Hemat gerak
+         HTML   : Section 1 Amplop | 2 Surat | 3 Kartu klik | 4 Bubble wrap | 5 Penutup | Musik
+         SCRIPT : 0 CONFIG (satu-satunya bagian yang perlu kamu edit)
+                  1 Helper | 2 Isi teks | 3 Kartu klik | 4 Bubble wrap | 5 Penutup
+                  6 Musik | 7 Efek melayang | 8 Urutan buka amplop
+         ===================================================================== -->
+
+    <style>
+        /* =====================================================================
+           CSS 0. DASAR: warna, font, reset
+           ===================================================================== */
+        :root {
+            --blush: #ffe9ef;
+            --pink: #ffc2d3;
+            --pink-soft: #ffd0dc;
+            --pink-flap: #ffb3c8;
+            --berry: #e0305a;
+            --berry-dark: #9b1c3a;
+            --leaf: #3f8f4e;
+            --paper: #fff8f9;
+            --ink: #5a1f33;
+            --muted: #8a6475;
+            --serif: "Fraunces", Georgia, "Times New Roman", serif;
+            --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+            --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            background-color: var(--pink);
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            background: radial-gradient(120% 90% at 50% 0%, var(--blush) 0%, var(--pink) 100%) fixed;
+            color: var(--ink);
+            font-family: var(--serif);
+            padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+            overflow-x: hidden;
+        }
+
+        /* Panel putih bercorak titik, dipakai bersama oleh Section 3 dan 4 */
+        .panel {
+            display: none;
+            margin-top: 28px;
+            padding: 30px 18px 26px;
+            border-radius: 6px;
+            background-color: var(--paper);
+            background-image: radial-gradient(rgba(224, 48, 90, .10) 1px, transparent 1.3px);
+            background-size: 22px 22px;
+            box-shadow: 0 22px 46px rgba(155, 28, 58, .22);
+        }
+
+        .panel.show {
+            display: block;
+            animation: rise .8s cubic-bezier(.2, .8, .2, 1) both;
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(60px) rotate(-1.5deg);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* =====================================================================
+           CSS 1. AMPLOP TERTUTUP
+           ===================================================================== */
+        #cover {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding: 24px;
+            text-align: center;
+            transition: opacity .6s ease, transform .6s ease;
+        }
+
+        #cover.gone {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+        }
+
+        .cover-hint {
+            font-size: 1.1rem;
+            color: var(--berry-dark);
+            max-width: 24ch;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
+        .cover-to {
+            font-family: var(--hand);
+            font-size: 2.5rem;
+            line-height: 1.1;
+            color: var(--berry);
+        }
+
+        .envelope {
+            position: relative;
+            width: min(300px, 78vw);
+            aspect-ratio: 3 / 2;
+            background: var(--pink-soft);
+            border-radius: 6px;
+            box-shadow: 0 18px 36px rgba(155, 28, 58, .28);
+            cursor: pointer;
+            border: 0;
+            padding: 0;
+            animation: breathe 3.6s ease-in-out infinite;
+        }
+
+        .envelope:focus-visible {
+            outline: 3px solid var(--berry-dark);
+            outline-offset: 6px;
+        }
+
+        .envelope::before,
+        .envelope::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+        }
+
+        .envelope::before {
+            background:
+                linear-gradient(to top right, transparent 49.5%, #ffbdd0 50%) left / 50% 100% no-repeat,
+                linear-gradient(to top left, transparent 49.5%, #ffbdd0 50%) right / 50% 100% no-repeat;
+            border-radius: 6px;
+        }
+
+        .envelope::after {
+            background: linear-gradient(to bottom, var(--pink-flap) 0%, var(--pink-flap) 50%, transparent 50.5%);
+            clip-path: polygon(0 0, 100% 0, 50% 62%);
+        }
+
+        /* Segel berbentuk stroberi */
+        .seal {
+            position: absolute;
+            left: 50%;
+            top: 58%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 62px;
+            z-index: 2;
+            border-radius: 50% 50% 48% 48% / 38% 38% 62% 62%;
+            background: radial-gradient(circle at 35% 30%, #ff6585, var(--berry) 60%, #a8203f);
+            box-shadow: 0 4px 8px rgba(155, 28, 58, .4);
+        }
+
+        .seal::before {
+            /* biji stroberi */
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle, #ffe9a8 1.3px, transparent 1.8px) 0 0 / 11px 11px;
+            opacity: .85;
+        }
+
+        .seal::after {
+            /* daun */
+            content: "";
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 15px;
+            background: var(--leaf);
+            clip-path: polygon(0 60%, 20% 15%, 38% 55%, 50% 0, 62% 55%, 80% 15%, 100% 60%, 50% 100%);
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(-1deg);
+            }
+
+            50% {
+                transform: translateY(-8px) rotate(1deg);
+            }
+        }
+
+        /* =====================================================================
+           CSS 2. SURAT
+           ===================================================================== */
+        #letter {
+            display: none;
+            padding: 40px 18px 120px;
+            max-width: 560px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        #letter.show {
+            display: block;
+        }
+
+        .paper {
+            background-color: var(--paper);
+            color: var(--ink);
+            border-radius: 6px;
+            padding: 34px 28px 30px;
+            box-shadow: 0 22px 46px rgba(155, 28, 58, .25);
+            border-top: 8px solid var(--berry);
+            background-image: repeating-linear-gradient(to bottom, transparent 0 35px, rgba(224, 48, 90, .15) 35px 36px);
+            animation: rise .9s cubic-bezier(.2, .8, .2, 1) both;
+        }
+
+        .paper h1 {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-style: italic;
+            font-size: 1.55rem;
+            line-height: 1.3;
+            margin-bottom: 18px;
+            color: var(--berry-dark);
+        }
+
+        .paper p.line {
+            font-family: var(--hand);
+            font-weight: 500;
+            font-size: 1.65rem;
+            line-height: 36px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+
+        .paper p.line.in {
+            opacity: 1;
+            transform: none;
+        }
+
+        .sign {
+            font-family: var(--hand);
+            font-weight: 700;
+            font-size: 1.9rem;
+            text-align: right;
+            margin-top: 18px;
+            color: var(--berry);
+            opacity: 0;
+            transition: opacity .8s ease;
+        }
+
+        .sign.in {
+            opacity: 1;
+        }
+
+        /* =====================================================================
+           CSS 3. KARTU KLIK (nomor, judul, KLIK, foto di belakang)
+           ===================================================================== */
+        #photos {
+            text-align: center;
+        }
+
+        .photos-label {
+            font-family: var(--hand);
+            font-size: 1.8rem;
+            line-height: 1;
+            color: var(--berry);
+        }
+
+        .photos-title {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: clamp(1.5rem, 6.4vw, 2rem);
+            line-height: 1.2;
+            color: var(--ink);
+            margin: 4px 0 24px;
+        }
+
+        .reasons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .reason {
+            flex: 0 0 calc(50% - 7px);
+            aspect-ratio: 4 / 5;
+            perspective: 900px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        @media (min-width: 480px) {
+            .reason {
+                flex-basis: calc(33.333% - 10px);
+            }
+        }
+
+        .reason:focus-visible {
+            outline: 3px solid var(--berry-dark);
+            outline-offset: 3px;
+            border-radius: 22px;
+        }
+
+        .flip {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform .6s cubic-bezier(.3, .7, .2, 1);
+        }
+
+        .reason.open .flip {
+            transform: rotateY(180deg);
+        }
+
+        .face {
+            position: absolute;
+            inset: 0;
+            border-radius: 22px;
+            overflow: hidden;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .front {
+            background: #fff;
+            border: 1px solid rgba(224, 48, 90, .14);
+            box-shadow: 0 10px 24px rgba(155, 28, 58, .12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .num {
+            font-family: var(--serif);
+            font-size: clamp(1.9rem, 8vw, 2.5rem);
+            line-height: 1;
+            color: var(--berry);
+        }
+
+        .ttl {
+            font-family: var(--sans);
+            font-size: .85rem;
+            line-height: 1.3;
+            color: var(--muted);
+        }
+
+        .cta {
+            font-family: var(--sans);
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .18em;
+            color: #c4a0ae;
+            margin-top: 6px;
+        }
+
+        .back {
+            transform: rotateY(180deg);
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(155, 28, 58, .3);
+        }
+
+        .back img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .back.contain img {
+            object-fit: contain;
+            height: calc(100% - 38px);
+        }
+
+        .again {
+            position: absolute;
+            left: 50%;
+            bottom: 9px;
+            transform: translateX(-50%);
+            font-family: var(--sans);
+            font-size: .72rem;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+            color: #fff;
+            background: rgba(48, 12, 28, .75);
+            padding: 7px 12px;
+            border-radius: 999px;
+        }
+
+        .back .missing {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 12px;
+            font-family: var(--sans);
+            font-size: .8rem;
+            line-height: 1.4;
+            color: var(--berry-dark);
+        }
+
+        /* =====================================================================
+           CSS 4. BUBBLE WRAP
+           ===================================================================== */
+        #bubbles {
+            text-align: left;
+        }
+
+        .bubble-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 6px 12px;
+        }
+
+        .bubble-title {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: clamp(1.35rem, 5.4vw, 1.8rem);
+            line-height: 1.2;
+            color: var(--ink);
+        }
+
+        .bubble-title em {
+            color: var(--berry);
+            font-style: italic;
+        }
+
+        .bubble-counter {
+            font-family: var(--sans);
+            font-size: .78rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .bubble-counter b {
+            color: var(--berry);
+            font-weight: 700;
+        }
+
+        .bubble-desc {
+            font-family: var(--sans);
+            font-size: .9rem;
+            line-height: 1.5;
+            color: var(--muted);
+            margin: 6px 0 16px;
+        }
+
+        .bubble-grid {
+            display: grid;
+            gap: clamp(8px, 2.6vw, 14px);
+            padding: clamp(12px, 3.4vw, 20px);
+            background: var(--blush);
+            border: 1px dashed rgba(224, 48, 90, .35);
+            border-radius: 14px;
+        }
+
+        .bubble {
+            position: relative;
+            aspect-ratio: 1;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            background: radial-gradient(circle at 34% 26%, #fff 0%, #ffeef3 38%, #ffc2d3 78%, #ffa3bd 100%);
+            box-shadow:
+                inset -5px -7px 12px rgba(224, 48, 90, .22),
+                inset 3px 4px 8px rgba(255, 255, 255, .95),
+                0 6px 12px rgba(224, 48, 90, .22);
+            transition: transform .12s ease, filter .15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bubble:hover:not(.popped) {
+            filter: brightness(1.03);
+        }
+
+        .bubble:active:not(.popped) {
+            transform: scale(.95);
+        }
+
+        .bubble:focus-visible {
+            outline: 3px solid var(--berry-dark);
+            outline-offset: 2px;
+        }
+
+        .bubble.popped {
+            cursor: default;
+            transform: scale(.84);
+            background: #ffd6e1;
+            border: 1px dashed rgba(224, 48, 90, .4);
+            box-shadow: inset 0 3px 8px rgba(224, 48, 90, .18);
+            animation: pop .32s ease-out;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(1);
+            }
+
+            35% {
+                transform: scale(1.14);
+            }
+
+            100% {
+                transform: scale(.84);
+            }
+        }
+
+        .bubble-text {
+            font-family: var(--serif);
+            font-style: italic;
+            font-weight: 700;
+            font-size: clamp(.58rem, 2.7vw, .8rem);
+            line-height: 1.15;
+            text-align: center;
+            color: var(--berry);
+            padding: 0 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s ease .08s;
+        }
+
+        .bubble.popped .bubble-text {
+            opacity: 1;
+        }
+
+        .bubble-foot {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .bubble-bar {
+            flex: 1 1 180px;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(224, 48, 90, .12);
+            overflow: hidden;
+        }
+
+        .bubble-bar i {
+            display: block;
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ff8fab, var(--berry));
+            transition: width .3s ease;
+        }
+
+        .pill {
+            font-family: var(--sans);
+            font-size: .85rem;
+            font-weight: 600;
+            padding: 9px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(90, 31, 51, .15);
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .pill:hover {
+            background: #fff0f4;
+        }
+
+        .pill:focus-visible {
+            outline: 3px solid var(--berry-dark);
+            outline-offset: 2px;
+        }
+
+        .bubble-done {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #fff0f4;
+            color: var(--berry-dark);
+            font-family: var(--sans);
+            font-size: .9rem;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .bubble-done.show {
+            display: block;
+        }
+
+        /* =====================================================================
+           CSS 5. PENUTUP
+           ===================================================================== */
+        .closing {
+            text-align: center;
+            padding: 48px 22px 46px;
+        }
+
+        .closing-title {
+            font-family: var(--serif);
+            font-weight: 700;
+            font-size: clamp(1.6rem, 7.4vw, 2.7rem);
+            line-height: 1.12;
+            letter-spacing: -.01em;
+            color: var(--ink);
+        }
+
+        .closing-title span,
+        .closing-title em {
+            display: block;
+        }
+
+        .closing-title em {
+            font-style: italic;
+            color: var(--berry);
+        }
+
+        .closing-text {
+            max-width: 42ch;
+            margin: 18px auto 0;
+            font-family: var(--sans);
+            font-size: clamp(.88rem, 3.7vw, 1.1rem);
+            line-height: 1.7;
+            color: var(--muted);
+            white-space: pre-line;
+            /* tanda \n di CONFIG menjadi baris baru */
+        }
+
+        /* =====================================================================
+           CSS 6. TOMBOL MUSIK
+           ===================================================================== */
+        #music {
+            position: fixed;
+            right: 16px;
+            bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 1px solid rgba(224, 48, 90, .4);
+            background: rgba(255, 248, 249, .92);
+            color: var(--berry);
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(155, 28, 58, .25);
+        }
+
+        #music.show {
+            display: block;
+        }
+
+        #music:focus-visible {
+            outline: 3px solid var(--berry-dark);
+            outline-offset: 3px;
+        }
+
+        .music-note {
+            margin-top: 16px;
+            background: var(--paper);
+            color: var(--berry-dark);
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-family: var(--sans);
+            font-size: .85rem;
+            text-align: center;
+        }
+
+        /* =====================================================================
+           CSS 7. EFEK STROBERI DAN HATI MELAYANG
+           ===================================================================== */
+        .fruit {
+            position: fixed;
+            bottom: -40px;
+            opacity: 0;
+            pointer-events: none;
+            animation: float linear forwards;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(.8);
+            }
+
+            15% {
+                opacity: .75;
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-105vh) scale(1.15) rotate(20deg);
+            }
+        }
+
+        /* =====================================================================
+           CSS 8. HEMAT GERAK (untuk pengguna yang mematikan animasi di perangkatnya)
+           ===================================================================== */
+        @media (prefers-reduced-motion: reduce) {
+
+            .envelope,
+            .paper,
+            .panel.show,
+            .bubble.popped {
+                animation: none;
+            }
+
+            .fruit {
+                display: none;
+            }
+
+            .paper p.line,
+            .sign,
+            .flip,
+            .bubble,
+            .bubble-bar i {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =====================================================================
+         HTML SECTION 1. AMPLOP
+         ===================================================================== -->
+    <section id="cover" aria-label="Amplop">
+        <p class="cover-hint" id="coverHint"></p>
+        <button class="envelope" id="openBtn" aria-label="Buka amplop"><span class="seal"
+                aria-hidden="true"></span></button>
+        <p class="cover-to" id="coverTo"></p>
+    </section>
+
+    <main id="letter">
+
+        <!-- =================================================================
+             HTML SECTION 2. SURAT
+             ================================================================= -->
+        <article class="paper">
+            <h1 id="title"></h1>
+            <div id="lines"></div>
+            <p class="sign" id="sign"></p>
+        </article>
+
+        <!-- =================================================================
+             HTML SECTION 3. KARTU KLIK
+             ================================================================= -->
+        <section class="panel" id="photos" aria-label="Kartu foto">
+            <p class="photos-label" id="photosLabel"></p>
+            <h2 class="photos-title" id="photosTitle"></h2>
+            <div class="reasons" id="strip"></div>
+        </section>
+
+        <!-- =================================================================
+             HTML SECTION 4. BUBBLE WRAP
+             ================================================================= -->
+        <section class="panel" id="bubbles" aria-label="Bubble wrap">
+            <div class="bubble-head">
+                <h2 class="bubble-title"><span id="bubbleTitle"></span> <em id="bubbleAccent"></em></h2>
+                <p class="bubble-counter" aria-live="polite"><b id="bubbleCount">0</b> / <span id="bubbleTotal">0</span>
+                    dipencet</p>
+            </div>
+            <p class="bubble-desc" id="bubbleDesc"></p>
+            <div class="bubble-grid" id="bubbleGrid" role="group" aria-label="Kumpulan bubble"></div>
+            <div class="bubble-foot">
+                <div class="bubble-bar" aria-hidden="true"><i id="bubbleBar"></i></div>
+                <button class="pill" id="bubbleReset" type="button">Reset bubble</button>
+            </div>
+            <p class="bubble-done" id="bubbleDone" aria-live="polite"></p>
+        </section>
+
+        <!-- =================================================================
+             HTML SECTION 5. PENUTUP
+             ================================================================= -->
+        <section class="panel closing" id="closing" aria-label="Penutup">
+            <h2 class="closing-title"><span id="closingLine1"></span><em id="closingLine2"></em></h2>
+            <p class="closing-text" id="closingText"></p>
+        </section>
+
+    </main>
+
+    <!-- =====================================================================
+         HTML MUSIK
+         ===================================================================== -->
+    <button id="music" aria-label="Putar atau jeda musik" aria-pressed="false">♪</button>
+    <audio id="audio" loop preload="auto"></audio>
+
+    <script>
+        /* =====================================================================
+           SCRIPT 0. CONFIG
+           Ini satu-satunya bagian yang perlu kamu edit. Bagian lain tidak perlu diubah.
+           ===================================================================== */
+        const CONFIG = {
+
+            /* ---- Section 1: Amplop ---- */
+            to: "My Couple AL🍓", // GANTI: nama atau sebutan penerima
+            from: "AL", // GANTI: nama kamu
+            coverHint: "Ada semangat kecil buat kamu yang baru masuk dunia perkuliah.",
+
+            /* ---- Section 2: Surat ---- */
+            title: "Jalani hari-harimu dengan senyuman ya!",
+            lines: [ // GANTI: satu item = satu baris yang muncul bergantian
+                "Semoga setiap hari diawali dengan perasaan tenang, pikiran yang segar, dan hati yang bahagia ya.",
+                "jalani harimu dengan santai dan penuh senyuman :)",
+                "Walau dunia kampus sekarang lagi bikin deg-degan, tugas numpuk, atau dosen bikin pusing...",
+                "pelan-pelan aja yang penting jalan terus...",
+                "Kamu udah hebat kok banget bisa sampai di titik ini!",
+
+
+            ],
+            signature: "CEMANGATTT🍓🍓",
+
+            /* ---- Section 3: Kartu klik ---- */
+            photosLabel: "For You",
+            photosTitle: "Kamu harus inget ini ya kalo lagi ovt",
+            // Satu baris = satu kartu. Nomor kartu otomatis (01, 02, 03, ...).
+            // title = tulisan di kartu tertutup.
+            // fit   = "contain" (gambar utuh, cocok untuk stiker) atau "cover" (memenuhi kartu, cocok untuk foto biasa).
+            photos: [{
+                    src: "1.png",
+                    title: "Semangat",
+                    fit: "contain"
+                },
+                {
+                    src: "2.png",
+                    title: "Jangan Lupa Mam",
+                    fit: "contain"
+                },
+                {
+                    src: "3.png",
+                    title: "Semangat Kuliahnya",
+                    fit: "contain"
+                }
+            ],
+
+            /* ---- Section 4: Bubble wrap ---- */
+            bubble: {
+                enabled: true, // false = bagian bubble wrap disembunyikan
+                title: "Bubble wrap",
+                titleAccent: "buat kamu.",
+                desc: "Pencet bubble buat buka kejutan kecil. Anti-stress, anti-bosen, anti-galau.",
+                count: 25, // jumlah bubble
+                columns: 5, // jumlah kolom
+                texts: [
+                    "Semangat"
+                ], // tulisan di bubble. Isi lebih dari satu agar bergantian, mis. ["I Love You", "Semangat!", "Kamu hebat"]
+                done: "Semua bubble sudah dipencet. Kamu hebat! 🍓", // pesan saat semua terpencet. "" = tidak ada
+                sound: true, // false = tanpa bunyi sama sekali
+                // Gaya bunyi bawaan (dibuat browser, tanpa file):
+                //   "lucu"  = acak: boing, cicit, bloop, siulan, bebek, kartun (bawaan)
+                //   "pop"   = bunyi pop plastik biasa
+                //   "campur" = lucu dan pop bergantian
+                soundStyle: "lucu",
+                // Mau pakai suaramu sendiri (mis. rekaman "hehe" atau efek lucu)? Taruh filenya di folder "suara"
+                // lalu isi daftarnya, mis. ["suara/hehe.mp3", "suara/boing.mp3"]. Dipilih acak tiap pencetan.
+                // Kalau diisi, bunyi bawaan di atas tidak dipakai. Kosongkan [] untuk memakai bunyi bawaan.
+                soundFiles: [],
+                vibrate: true // getar singkat di HP yang mendukung
+            },
+
+            /* ---- Section 5: Penutup (paling bawah halaman) ---- */
+            closing: {
+                enabled: true, // false = bagian penutup disembunyikan
+                line1: "Udah, gitu aja hehehe...", // baris besar berwarna gelap
+                line2: "Semoga kamu suka ya...", // baris besar miring berwarna stroberi
+                text: "sorry, aku cuma bisa kasi semangat lewat ini \nSemoga suka dan moodnya jadi bagus terussss" // \n = pindah baris
+            },
+
+            /* ---- Musik latar ---- */
+            music: "lagu.mp3" // isi mis. "musik/lagu.mp3" jika ada musik. "" = tanpa musik.
+        };
+
+        /* =====================================================================
+           SCRIPT 1. HELPER
+           ===================================================================== */
+        const $ = (id) => document.getElementById(id);
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // Daftar nama file yang dicoba berurutan sampai ada yang berhasil dimuat.
+        // Mencakup: nama persis seperti di CONFIG, folder "foto/", dan ekstensi png/jpg/jpeg/webp (huruf kecil dan besar).
+        function candidatesFor(src) {
+            if (/^https?:/i.test(src)) return [src];
+            const base = src.replace(/^foto\//i, "").replace(/\.[a-z0-9]+$/i, "");
+            const list = [src];
+            ["", "foto/"].forEach((dir) => {
+                ["png", "jpg", "jpeg", "webp", "PNG", "JPG", "JPEG"].forEach((ext) => list.push(dir + base +
+                    "." + ext));
+            });
+            return [...new Set(list)];
+        }
+
+        // Teks surat utuh, dipakai tombol "Salin surat"
+        function letterAsText() {
+            return [
+                CONFIG.title,
+                "",
+                ...CONFIG.lines,
+                "",
+                CONFIG.signature + ", " + CONFIG.from
+            ].join("\n");
+        }
+
+        /* =====================================================================
+           SCRIPT 2. ISI TEKS (amplop dan surat)
+           ===================================================================== */
+        function fillTexts() {
+            $("coverHint").textContent = CONFIG.coverHint;
+            $("coverTo").textContent = "Untuk " + CONFIG.to;
+            $("title").textContent = CONFIG.title;
+            document.title = "Pesan untuk " + CONFIG.to;
+
+            CONFIG.lines.forEach((t) => {
+                const p = document.createElement("p");
+                p.className = "line";
+                p.textContent = t;
+                $("lines").appendChild(p);
+            });
+            $("sign").textContent = CONFIG.signature + ", " + CONFIG.from;
+        }
+
+        /* =====================================================================
+           SCRIPT 3. KARTU KLIK
+           ===================================================================== */
+        const photos = CONFIG.photos || [];
+
+        function toggleCard(card) {
+            const open = card.classList.toggle("open");
+            card.setAttribute("aria-pressed", String(open));
+        }
+
+        function buildCards() {
+            $("photosLabel").textContent = CONFIG.photosLabel || "";
+            $("photosTitle").textContent = CONFIG.photosTitle || "";
+
+            photos.forEach((ph, idx) => {
+                const title = ph.title || "Kenangan " + (idx + 1);
+
+                const card = document.createElement("div");
+                card.className = "reason";
+                card.setAttribute("role", "button");
+                card.setAttribute("tabindex", "0");
+                card.setAttribute("aria-pressed", "false");
+                card.setAttribute("aria-label", title + ". Klik untuk membuka atau menutup foto");
+
+                const flip = document.createElement("div");
+                flip.className = "flip";
+
+                // Sisi depan: nomor, judul, KLIK
+                const front = document.createElement("div");
+                front.className = "face front";
+                const num = document.createElement("span");
+                num.className = "num";
+                num.textContent = String(idx + 1).padStart(2, "0");
+                const ttl = document.createElement("span");
+                ttl.className = "ttl";
+                ttl.textContent = title;
+                const cta = document.createElement("span");
+                cta.className = "cta";
+                cta.textContent = "KLIK";
+                front.append(num, ttl, cta);
+
+                // Sisi belakang: foto dan tombol "klik lagi"
+                const back = document.createElement("div");
+                back.className = "face back" + (ph.fit === "cover" ? "" : " contain");
+                const img = document.createElement("img");
+                img.alt = title;
+                const cands = candidatesFor(ph.src);
+                let i = 0;
+                img.onerror = () => {
+                    i++;
+                    if (i < cands.length) {
+                        img.src = cands[i];
+                    } else {
+                        const note = document.createElement("div");
+                        note.className = "missing";
+                        note.textContent = "Foto tidak ditemukan: " + ph.src;
+                        img.replaceWith(note);
+                    }
+                };
+                img.src = cands[0];
+                const again = document.createElement("span");
+                again.className = "again";
+                again.textContent = "klik lagi ↺";
+                back.append(img, again);
+
+                flip.append(front, back);
+                card.appendChild(flip);
+                card.addEventListener("click", () => toggleCard(card));
+                card.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleCard(card);
+                    }
+                });
+                $("strip").appendChild(card);
+            });
+        }
+
+        /* =====================================================================
+           SCRIPT 4. BUBBLE WRAP (dengan bunyi lucu)
+           ===================================================================== */
+        const BUBBLE = CONFIG.bubble || {};
+        let audioCtx = null;
+        let lastSound = "";
+
+        // Satu nada: gelombang + jalur nada (naik turun) + kenyaringan. Semuanya dibuat oleh browser.
+        //   pts    = daftar [detik, frekuensi] yang menggambar naik-turunnya nada
+        //   vib    = getar nada {rate, depth}, memberi efek "bergetar"
+        //   filter = saringan opsional {type, freq, q} untuk mengubah warna suara
+        function tone(ctx, t, out, o) {
+            const osc = ctx.createOscillator();
+            osc.type = o.type;
+            osc.frequency.setValueAtTime(o.pts[0][1], t + o.pts[0][0]);
+            for (let i = 1; i < o.pts.length; i++) {
+                osc.frequency.exponentialRampToValueAtTime(o.pts[i][1], t + o.pts[i][0]);
+            }
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, t);
+            gain.gain.exponentialRampToValueAtTime(o.vol, t + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
+
+            let node = osc;
+            if (o.filter) {
+                const f = ctx.createBiquadFilter();
+                f.type = o.filter.type;
+                f.frequency.value = o.filter.freq;
+                f.Q.value = o.filter.q || 1;
+                node.connect(f);
+                node = f;
+            }
+            node.connect(gain);
+            gain.connect(out);
+
+            if (o.vib) {
+                const lfo = ctx.createOscillator();
+                const lfoGain = ctx.createGain();
+                lfo.frequency.value = o.vib.rate;
+                lfoGain.gain.value = o.vib.depth;
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                lfo.start(t);
+                lfo.stop(t + o.dur + 0.05);
+            }
+            osc.start(t);
+            osc.stop(t + o.dur + 0.05);
+        }
+
+        // Kumpulan bunyi. Tiap bunyi menerima (ctx, t, out): konteks suara, waktu mulai, dan tujuan keluarnya.
+        // Tinggi nadanya diacak sedikit (k) agar tiap pencetan terdengar sedikit berbeda.
+        const SOUNDS = {
+            // Pop plastik klasik: letusan derau singkat + "tuk" nada rendah
+            pop(ctx, t, out) {
+                const len = Math.floor(ctx.sampleRate * 0.07);
+                const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+                const noise = ctx.createBufferSource();
+                noise.buffer = buf;
+                const hp = ctx.createBiquadFilter();
+                hp.type = "highpass";
+                hp.frequency.value = 900 + Math.random() * 900;
+                const g = ctx.createGain();
+                g.gain.value = 0.45;
+                noise.connect(hp);
+                hp.connect(g);
+                g.connect(out);
+                noise.start(t);
+                const base = 180 + Math.random() * 90;
+                tone(ctx, t, out, {
+                    type: "sine",
+                    vol: 0.5,
+                    dur: 0.1,
+                    pts: [
+                        [0, base * 2],
+                        [0.08, base * 0.5]
+                    ]
+                });
+            },
+            // "Boiiing" pegas yang memantul
+            boing(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.4;
+                tone(ctx, t, out, {
+                    type: "sine",
+                    vol: 0.5,
+                    dur: 0.4,
+                    pts: [
+                        [0, 260 * k],
+                        [0.06, 620 * k],
+                        [0.14, 330 * k],
+                        [0.23, 520 * k],
+                        [0.36, 270 * k]
+                    ],
+                    vib: {
+                        rate: 22,
+                        depth: 28
+                    }
+                });
+            },
+            // Cicit mainan karet
+            squeak(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.4;
+                tone(ctx, t, out, {
+                    type: "square",
+                    vol: 0.32,
+                    dur: 0.15,
+                    pts: [
+                        [0, 1400 * k],
+                        [0.05, 2300 * k],
+                        [0.13, 1700 * k]
+                    ],
+                    filter: {
+                        type: "lowpass",
+                        freq: 2600,
+                        q: 1
+                    }
+                });
+            },
+            // "Bloop" tetes air
+            bloop(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.4;
+                tone(ctx, t, out, {
+                    type: "sine",
+                    vol: 0.55,
+                    dur: 0.18,
+                    pts: [
+                        [0, 350 * k],
+                        [0.1, 1000 * k]
+                    ]
+                });
+            },
+            // Siulan naik ("fiuuu")
+            siul(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.3;
+                tone(ctx, t, out, {
+                    type: "sine",
+                    vol: 0.35,
+                    dur: 0.32,
+                    pts: [
+                        [0, 500 * k],
+                        [0.28, 1800 * k]
+                    ],
+                    vib: {
+                        rate: 9,
+                        depth: 35
+                    }
+                });
+            },
+            // "Kwek" bebek
+            bebek(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.3;
+                tone(ctx, t, out, {
+                    type: "sawtooth",
+                    vol: 1.1,
+                    dur: 0.22,
+                    pts: [
+                        [0, 520 * k],
+                        [0.18, 330 * k]
+                    ],
+                    filter: {
+                        type: "bandpass",
+                        freq: 900,
+                        q: 3
+                    },
+                    vib: {
+                        rate: 38,
+                        depth: 22
+                    }
+                });
+            },
+            // Efek kartun menukik
+            kartun(ctx, t, out) {
+                const k = 0.85 + Math.random() * 0.4;
+                tone(ctx, t, out, {
+                    type: "triangle",
+                    vol: 0.5,
+                    dur: 0.18,
+                    pts: [
+                        [0, 1000 * k],
+                        [0.14, 180 * k]
+                    ]
+                });
+            }
+        };
+
+        const LUCU = ["boing", "squeak", "bloop", "siul", "bebek", "kartun"];
+
+        // Memilih bunyi sesuai soundStyle, dan tidak mengulang bunyi yang sama dua kali berturut-turut
+        function pickSound() {
+            let names;
+            if (BUBBLE.soundStyle === "pop") names = ["pop"];
+            else if (BUBBLE.soundStyle === "campur") names = LUCU.concat("pop");
+            else names = LUCU;
+            const choices = names.length > 1 ? names.filter((n) => n !== lastSound) : names;
+            lastSound = choices[Math.floor(Math.random() * choices.length)];
+            return lastSound;
+        }
+
+        // Suara buatanmu sendiri (opsional): dimuat di awal, diputar acak tiap pencetan
+        const customSounds = (BUBBLE.soundFiles || []).map((src) => {
+            const a = new Audio();
+            a.preload = "auto";
+            a.src = src;
+            return a;
+        });
+
+        function playCustom() {
+            const usable = customSounds.filter((a) => !a.error);
+            if (!usable.length) return false;
+            const base = usable[Math.floor(Math.random() * usable.length)];
+            const clip = base.cloneNode(); // salinan, supaya pencetan cepat bisa tumpang tindih
+            clip.play().catch(() => {});
+            return true;
+        }
+
+        function playPop() {
+            if (!BUBBLE.sound) return;
+            if (customSounds.length && playCustom()) return;
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            try {
+                if (!audioCtx) audioCtx = new AC();
+                if (audioCtx.state === "suspended") audioCtx.resume();
+                SOUNDS[pickSound()](audioCtx, audioCtx.currentTime, audioCtx.destination);
+            } catch (e) {
+                /* jika browser menolak, abaikan saja: bubble tetap bisa dipencet */
+            }
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise((resolve, reject) => {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.select();
+                const ok = document.execCommand("copy");
+                ta.remove();
+                ok ? resolve() : reject(new Error("copy gagal"));
+            });
+        }
+
+        function buildBubbles() {
+            if (BUBBLE.enabled === false) return;
+
+            const total = BUBBLE.count || 25;
+            const texts = (BUBBLE.texts && BUBBLE.texts.length) ? BUBBLE.texts : ["Semangat"];
+            const grid = $("bubbleGrid");
+            let popped = 0;
+
+            $("bubbleTitle").textContent = BUBBLE.title || "Bubble wrap";
+            $("bubbleAccent").textContent = BUBBLE.titleAccent || "";
+            $("bubbleDesc").textContent = BUBBLE.desc || "";
+            $("bubbleTotal").textContent = total;
+            grid.style.gridTemplateColumns = "repeat(" + (BUBBLE.columns || 5) + ", 1fr)";
+
+            function refresh() {
+                $("bubbleCount").textContent = popped;
+                $("bubbleBar").style.width = (popped / total * 100) + "%";
+                const done = $("bubbleDone");
+                if (popped === total && BUBBLE.done) {
+                    done.textContent = BUBBLE.done;
+                    done.classList.add("show");
+                } else {
+                    done.classList.remove("show");
+                }
+            }
+
+            function pop(btn, i) {
+                if (btn.classList.contains("popped")) return;
+                btn.classList.add("popped");
+                btn.setAttribute("aria-pressed", "true");
+                btn.setAttribute("aria-label", "Bubble " + (i + 1) + ", sudah dipencet");
+                playPop();
+                if (BUBBLE.vibrate && navigator.vibrate) navigator.vibrate(12);
+                popped++;
+                refresh();
+            }
+
+            const bubbles = [];
+            for (let i = 0; i < total; i++) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "bubble";
+                btn.setAttribute("aria-pressed", "false");
+                btn.setAttribute("aria-label", "Bubble " + (i + 1) + ", belum dipencet");
+                const span = document.createElement("span");
+                span.className = "bubble-text";
+                span.textContent = texts[i % texts.length];
+                btn.appendChild(span);
+                btn.addEventListener("click", () => pop(btn, i));
+                grid.appendChild(btn);
+                bubbles.push(btn);
+            }
+
+            $("bubbleReset").addEventListener("click", () => {
+                bubbles.forEach((b, i) => {
+                    b.classList.remove("popped");
+                    b.setAttribute("aria-pressed", "false");
+                    b.setAttribute("aria-label", "Bubble " + (i + 1) + ", belum dipencet");
+                });
+                popped = 0;
+                refresh();
+            });
+
+            refresh();
+        }
+
+        /* =====================================================================
+           SCRIPT 5. PENUTUP
+           ===================================================================== */
+        const CLOSING = CONFIG.closing || {};
+
+        function buildClosing() {
+            if (CLOSING.enabled === false) return;
+            $("closingLine1").textContent = CLOSING.line1 || "";
+            $("closingLine2").textContent = CLOSING.line2 || "";
+            $("closingText").textContent = CLOSING.text || "";
+        }
+
+        /* =====================================================================
+           SCRIPT 6. MUSIK
+           ===================================================================== */
+        const audio = $("audio");
+        const musicBtn = $("music");
+
+        function setupMusic() {
+            if (CONFIG.music) {
+                audio.src = CONFIG.music;
+                musicBtn.classList.add("show");
+            }
+            audio.addEventListener("error", () => {
+                musicBtn.classList.remove("show");
+                const note = document.createElement("div");
+                note.className = "music-note";
+                note.textContent = "Musik tidak bisa dimuat: " + CONFIG.music +
+                    " (file tidak ditemukan atau formatnya tidak didukung)";
+                $("letter").appendChild(note);
+            });
+            musicBtn.addEventListener("click", () => {
+                if (audio.paused) {
+                    audio.play().catch(() => {});
+                } else {
+                    audio.pause();
+                }
+            });
+            audio.addEventListener("play", () => {
+                musicBtn.textContent = "♪";
+                musicBtn.setAttribute("aria-pressed", "true");
+            });
+            audio.addEventListener("pause", () => {
+                musicBtn.textContent = "▶";
+                musicBtn.setAttribute("aria-pressed", "false");
+            });
+        }
+
+        /* =====================================================================
+           SCRIPT 7. EFEK STROBERI DAN HATI MELAYANG
+           ===================================================================== */
+        const ICONS = ["🍓", "🍓", "♥"];
+
+        function spawnFruit() {
+            const el = document.createElement("span");
+            el.className = "fruit";
+            const icon = ICONS[Math.floor(Math.random() * ICONS.length)];
+            el.textContent = icon;
+            if (icon === "♥") el.style.color = "#e0305a";
+            el.style.left = Math.random() * 100 + "vw";
+            el.style.fontSize = 16 + Math.random() * 16 + "px";
+            el.style.animationDuration = 7 + Math.random() * 6 + "s";
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 14000);
+        }
+
+        /* =====================================================================
+           SCRIPT 8. URUTAN SAAT AMPLOP DIBUKA
+           Ketukan pertama juga yang mengizinkan browser memutar musik dan bunyi.
+           ===================================================================== */
+        function setupOpening() {
+            $("openBtn").addEventListener("click", () => {
+                $("cover").classList.add("gone");
+                $("letter").classList.add("show");
+                if (CONFIG.music) audio.play().catch(() => {});
+
+                // Surat: baris demi baris, lalu tanda tangan
+                const lines = document.querySelectorAll(".line");
+                lines.forEach((el, i) => setTimeout(() => el.classList.add("in"), 900 + i * 1100));
+                const doneAt = 900 + lines.length * 1100;
+                setTimeout(() => $("sign").classList.add("in"), doneAt);
+
+                // Panel kartu, lalu panel bubble wrap, lalu penutup
+                if (photos.length) setTimeout(() => $("photos").classList.add("show"), doneAt + 600);
+                if (BUBBLE.enabled !== false) setTimeout(() => $("bubbles").classList.add("show"), doneAt +
+                    1400);
+                if (CLOSING.enabled !== false) setTimeout(() => $("closing").classList.add("show"), doneAt +
+                    2200);
+
+                if (!reduceMotion) setInterval(spawnFruit, 1100);
+            }, {
+                once: true
+            });
+        }
+
+        /* =====================================================================
+           JALANKAN SEMUANYA
+           ===================================================================== */
+        fillTexts();
+        buildCards();
+        buildBubbles();
+        buildClosing();
+        setupMusic();
+        setupOpening();
+    </script>
+</body>
+
+</html>
